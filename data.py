@@ -5,6 +5,8 @@ import json
 import numpy as np
 import torch
 
+# from datasets import load_dataset
+
 from util import prepro_sentence, prepro_sentence_pair, \
     prepro_sentence_pair_single
 
@@ -26,8 +28,17 @@ def load_data(data_dir, task, k, seed, split):
             data = data[1:]
     elif os.path.exists(os.path.join(data_dir, "{}.csv".format(split))):
         with open(os.path.join(data_dir, "{}.csv".format(split)), "r") as f:
-            for label, text in csv.reader(f):
+            # for label, text in csv.reader(f):
+            for text, label in csv.reader(f):
                 data.append((text, label))
+                 #print(text, label)
+                # raise NotImplementedError
+    # cdiff
+    # elif os.path.exists(os.path.join(data_dir, "{}.json".format(split))):
+    #     data_file = os.path.join(data_dir, "{}.json".format(split))
+    #     data = process_cdiff(json.load(data_file, 'r')['data'])
+    #   raw_datasets = load_dataset('json', data_files=data_file, field='data')
+        
     else:
         raise NotImplementedError(data_dir)
 
@@ -35,6 +46,7 @@ def load_data(data_dir, task, k, seed, split):
     assert np.all([len(dp)==2 for dp in data])
 
     return data
+
 
 
 def prepare_data(tokenizer, train_data, test_data, max_length, max_length_per_example,
@@ -113,6 +125,7 @@ def prepare_data(tokenizer, train_data, test_data, max_length, max_length_per_ex
 
         input_ids, attention_mask, token_type_ids = [], [], []
         for test_input, dp in zip(test_inputs, test_data):
+            print(test_input, dp)
             if transform is not None:
                 test_input, test_output = test_input
                 encoded = prepro_sentence_pair_single(

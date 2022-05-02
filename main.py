@@ -24,7 +24,8 @@ N_LABELS_DICT = {"SST-2": 2, "sst-5": 5, "mr": 2, "cr": 2, "mpqa": 2,
                  "amazon": 5, "yelp_full": 5, "yelp_binary": 2,
                  "agnews": 4, "copa": 2, "boolq": 2,
                  "RTE": 2, "cb": 3,
-                 "yahoo": 10, "dbpedia": 14}
+                 "yahoo": 10, "dbpedia": 14,
+                 "cdiffs": 2, "cdiffw":2}
 
 
 def main(logger, args):
