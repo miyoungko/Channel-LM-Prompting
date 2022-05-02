@@ -4,5 +4,4 @@ out
 *.out
 *.txt
 __pycache__
-Makefile
 tmp*
