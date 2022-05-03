@@ -19,6 +19,8 @@ from model_util import load_checkpoint, set_extra_embeddings, \
 from util import get_prompts, get_paths, flatten_label_losses, \
     prepend_task_tokens, reassign_output_tokens
 
+from sklearn.metrics import f1_score, recall_score, precision_score
+
 N_LABELS_DICT = {"SST-2": 2, "sst-5": 5, "mr": 2, "cr": 2, "mpqa": 2,
                  "subj": 2, "trec": 6, "CoLA": 2,
                  "amazon": 5, "yelp_full": 5, "yelp_binary": 2,
@@ -73,9 +75,10 @@ def main(logger, args):
         dev_data = load_data(args.data_dir, args.task, k, seed, args.split)
 
     accs = []
+    f1s = []
     # run over different templates
     for template_idx in range(n_templates):
-        acc = run(logger, args.do_train, args.do_zeroshot,
+        acc, f1 = run(logger, args.do_train, args.do_zeroshot,
                   args.task, train_task,
                   k, seed, args.train_seed,
                   args.out_dir, args.split,
@@ -94,10 +97,11 @@ def main(logger, args):
                   n_prefix=args.n_prefix)
 
         accs.append(acc)
+        f1s.append(f1)
 
     if args.split is not None:
         logger.info("Accuracy = %.1f (Avg) / %.1f (Worst)" % (100*np.mean(accs), 100*np.min(accs)))
-
+        logger.info("F1 = %.1f (Avg) / %.1f (Worst)" % (100*np.mean(f1s), 100*np.min(f1s)))
 
 def run(logger, do_train, do_zeroshot, task, train_task, k, seed,
         train_seed,
@@ -351,18 +355,28 @@ def run(logger, do_train, do_zeroshot, task, train_task, k, seed,
                 losses[i] = loss - bias_loss
 
 
-        acc = evaluate(dev_data, {str(i): loss for i, loss in enumerate(losses)})
+        acc, f1, rc, pc = evaluate(dev_data, {str(i): loss for i, loss in enumerate(losses)})
         logger.info(acc)
-        return acc
+        logger.info(f1)
+        logger.info(rc)
+        logger.info(pc)
+        return acc, f1
 
 def evaluate(dev_data, label_losses):
     labels = list(label_losses.keys())
     acc = []
+    preds = []
+    answers = []
     for idx, (_, label) in enumerate(dev_data):
         label_loss = {l:np.sum(label_losses[l][idx]) for l in label_losses}
         prediction = sorted(label_loss.items(), key=lambda x: x[1])[0][0]
+        preds.append(prediction)
+        answers.append(label)
         acc.append(prediction==label)
-    return np.mean(acc)
+    f1 = f1_score(answers, preds, pos_label='1')
+    recall = recall_score(answers, preds, average=None)
+    precision = precision_score(answers, preds, average=None)
+    return np.mean(acc), f1, recall, precision
 
 
 if __name__ == '__main__':
