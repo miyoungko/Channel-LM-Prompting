@@ -108,7 +108,7 @@ def get_prompts(task, idx):
 
     if task in ["cdiffs", "cdiffw"]:
         # label_words = ["false", "true"]
-        label_words = ["no", "yes"]
+        label_words = ["No", "Yes"]
     elif task in ["SST-2", "mr", "cr", "yelp_binary"]:
         label_words = ["terrible", "great"]
     elif task in ["sst-5", "yelp_full", "amazon"]:

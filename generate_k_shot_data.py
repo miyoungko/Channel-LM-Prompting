@@ -55,13 +55,13 @@ def get_label(task, line):
 def process_cdiff(cdiff_data, type):
     data = []
     for d in cdiff_data:
-        # sent = "A: " + d["claim_a"] + ". B: " + d["claim_b"]
-        if type == "cdiffs":
-            sent = "\"" + d["claim_a"] + "\" Does it strengthen \"" + d["claim_b"] + "\"?"
-        elif type == "cdiffw":
-            sent = "\"" + d["claim_a"] + "\"  Does it weaken \"" + d["claim_b"] + "\"?"
-        else:
-            raise NotImplementedError
+        sent = "Claim A: " + d["claim_a"] + " Claim B: " + d["claim_b"] +  " The answer: "
+        # if type == "cdiffs":
+        #     sent = "\"" + d["claim_a"] + "\" It supports \"" + d["claim_b"] + "\"?"
+        # elif type == "cdiffw":
+        #     sent = "\"" + d["claim_a"] + "\"  It is opposition to \"" + d["claim_b"] + "\"?"
+        # else:
+        #    raise NotImplementedError
         label = str(d["relation"])
         data.append((sent, label))
 
@@ -133,7 +133,7 @@ def main():
         default=[100, 13, 21, 42, 87],
         help="Random seeds")
     parser.add_argument("--data_dir", type=str, default="data/original", help="Path to original data")
-    parser.add_argument("--output_dir", type=str, default="data/type2", help="Output path")
+    parser.add_argument("--output_dir", type=str, default="data", help="Output path")
     parser.add_argument("--mode", type=str, default='k-shot', choices=['k-shot', 'k-shot-10x'], help="k-shot or k-shot-10x (10x dev set)")
     parser.add_argument("--balance", action="store_true")
 

@@ -2,7 +2,7 @@ def cdiffs-gpt:
 	python main.py \
     --task 'cdiffs' \
     --split test \
-    --data_dir data/type2 \
+    --data_dir data \
     --out_dir out \
     --gpt2 ${MODEL} \
     --method direct \
@@ -15,7 +15,7 @@ def cdiffw-gpt:
 	python main.py \
     --task 'cdiffw' \
     --split test \
-    --data_dir data/type2 \
+    --data_dir data\
     --out_dir out \
     --gpt2 ${MODEL} \
     --method direct \
