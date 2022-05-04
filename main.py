@@ -174,8 +174,8 @@ def run(logger, do_train, do_zeroshot, task, train_task, k, seed,
                             n_prefix=n_prefix)
 
         k = int(k)
-        eval_period = 100
-        num_training_steps = 400
+        eval_period = 200
+        num_training_steps = 300
 
         cache_paths = [os.path.join(out_dir, "{}cache-{}-{}.pkl".format(
             task + "-" if train_task != task else "",

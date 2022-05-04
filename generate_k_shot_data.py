@@ -55,7 +55,7 @@ def get_label(task, line):
 def process_cdiff(cdiff_data, type):
     data = []
     for d in cdiff_data:
-        sent = "Claim A: " + d["claim_a"] + " Claim B: " + d["claim_b"] +  " The answer: "
+        sent = "Claim A: " + d["claim_a"] + " Claim B: " + d["claim_b"]
         # if type == "cdiffs":
         #     sent = "\"" + d["claim_a"] + "\" It supports \"" + d["claim_b"] + "\"?"
         # elif type == "cdiffw":
