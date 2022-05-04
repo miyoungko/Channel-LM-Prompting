@@ -63,7 +63,8 @@ def main(logger, args):
     if args.do_train or args.use_demonstrations:
         assert args.train_seed > 0
 
-    n_templates = 4
+    # TODO
+    n_templates = 2
     k = int(args.k)
     seed = int(args.seed)
 

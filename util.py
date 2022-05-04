@@ -92,20 +92,23 @@ def get_prompts(task, idx):
                      "You are %s .",
                      "I am %s ."]
     elif task=="cdiffs":
-        templates = ["A strenghtens B? %s",
-                     "A strenghtens B: %s",
-                     "Strengthen? %s",
-                     "It is %s that A strengthens B"]
+        templates = ["%s", "%s."]
+                    # ["A strenghtens B? %s",
+                    #  "A strenghtens B: %s",
+                    #  "Strengthen? %s",
+                    #  "It is %s that A strengthens B"]
     elif task=="cdiffw":
-        templates = ["A weakens B? %s",
-                     "A strenghtens B: %s",
-                     "Weaken? %s",
-                     "It is %s that A weakens B"]
+        templates = ["%s", "%s."]
+                    # ["A weakens B? %s",
+                    #  "A strenghtens B: %s",
+                    #  "Weaken? %s",
+                    #  "It is %s that A weakens B"]
     else:
         raise NotImplementedError(task)
 
     if task in ["cdiffs", "cdiffw"]:
-        label_words = ["true", "false"]
+        # label_words = ["false", "true"]
+        label_words = ["no", "yes"]
     elif task in ["SST-2", "mr", "cr", "yelp_binary"]:
         label_words = ["terrible", "great"]
     elif task in ["sst-5", "yelp_full", "amazon"]:
