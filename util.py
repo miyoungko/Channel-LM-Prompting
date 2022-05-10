@@ -92,23 +92,27 @@ def get_prompts(task, idx):
                      "You are %s .",
                      "I am %s ."]
     elif task=="cdiffs":
-        # templates = ["%s", "%s."]
-        templates =  ["A strenghtens B? %s",
-                     "A supports B? %s",
-                     "Strengthen? %s",
-                     "It is %s that A strengthens B"]
+        templates = ["%s"]
+        # templates =  ["A strenghtens B? %s",
+        #              "A supports B? %s",
+        #              "Strengthen? %s",
+        #              "It is %s that A strengthens B"]
     elif task=="cdiffw":
-        # templates = ["%s", "%s."]
-        templates = ["A weakens B? %s",
-                     "A is opposition to B? %s",
-                     "Weaken? %s",
-                     "It is %s that A weakens B"]
+        templates = ["%s"]
+        # templates = ["A weakens B? %s",
+        #              "A is opposition to B? %s",
+        #              "Weaken? %s",
+        #              "It is %s that A weakens B"]
     else:
         raise NotImplementedError(task)
 
-    if task in ["cdiffs", "cdiffw"]:
+    # if task in ["cdiffs", "cdiffw"]:
         # label_words = ["false", "true"]
-        label_words = ["False", "True"]
+    #     label_words = ["False", "True"]
+    if task == "cdiffs":
+        label_words = ["not_related", "strengthen"]
+    elif task == "cdiffw":
+        label_words = ["not_related", "weaken"]
     elif task in ["SST-2", "mr", "cr", "yelp_binary"]:
         label_words = ["terrible", "great"]
     elif task in ["sst-5", "yelp_full", "amazon"]:
@@ -218,8 +222,9 @@ def get_paths(out_dir, gpt2, method, task, do_zeroshot,
 
 def prepend_task_tokens(tokenizer, inputs, n_prefix):
     task_tokens = ["<TASK{}>".format(str(i).zfill(2)) for i in range(n_prefix)]
-    tokenizer.add_tokens(task_tokens)
-    task_token_ids = tokenizer(" ".join(task_tokens), return_tensors="pt")["input_ids"]
+    tokenizer.add_tokens(task_tokens, special_tokens=True)
+    task_token_ids = tokenizer(" ".join(task_tokens), return_tensors="pt", 
+                                    add_special_tokens=False)["input_ids"]
     assert task_token_ids.shape[-1]==n_prefix
 
     def convert(inputs):

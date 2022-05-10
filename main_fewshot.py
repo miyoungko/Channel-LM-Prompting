@@ -13,7 +13,7 @@ from collections import Counter, defaultdict
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
 from transformers import T5Tokenizer, T5ForConditionalGeneration
 
-from data import load_data, prepare_data, load_data_whole
+from data import load_data, prepare_data
 from run import train, inference
 # from model_util import load_checkpoint, set_extra_embeddings, \
 #     set_separate_lm_head, set_separate_embeddings, set_transformed_lm_head
@@ -72,16 +72,13 @@ def main(logger, args):
     k = int(args.k)
     seed = int(args.seed)
 
-    # train_data = load_data_whole(args.data_dir, train_task, k, seed, "train")
-    train_data = load_data_whole(args.data_dir, train_task, "train")
+    train_data = load_data(args.data_dir, train_task, k, seed, "train")
     if args.split is None:
         assert args.do_zeroshot
         dev_data = None
     else:
-        # dev_data = load_data_whole(args.data_dir, args.task, k, seed, args.split)
-        dev_data = load_data_whole(args.data_dir, args.task, args.split)
-        
-    logger.info("Load dataset complete")
+        dev_data = load_data(args.data_dir, args.task, k, seed, args.split)
+
     accs = []
     f1s = []
     # run over different templates
@@ -127,7 +124,6 @@ def run(logger, do_train, do_zeroshot, task, train_task, k, seed,
         head_tune=False,
         transform_tune=False,
         do_check=False, n_prefix=20):
-
     random.seed(train_seed)
     np.random.seed(train_seed)
     torch.manual_seed(train_seed)
@@ -186,9 +182,8 @@ def run(logger, do_train, do_zeroshot, task, train_task, k, seed,
                             n_prefix=n_prefix)
 
         k = int(k)
-        #TODO
-        eval_period = 2
-        num_training_steps = 5
+        eval_period = 200
+        num_training_steps = 300
 
         cache_paths = [os.path.join(out_dir, "{}cache-{}-{}.pkl".format(
             task + "-" if train_task != task else "",
@@ -227,7 +222,6 @@ def run(logger, do_train, do_zeroshot, task, train_task, k, seed,
 
                 set_extra_embeddings(model, n_prefix)
                 inputs = prepend_task_tokens(tokenizer, inputs, n_prefix)
-                logger.info("Task token")
 
             elif head_tune:
                 mapping, inputs = reassign_output_tokens(inputs, for_labels=True)
@@ -250,7 +244,6 @@ def run(logger, do_train, do_zeroshot, task, train_task, k, seed,
             if torch.cuda.device_count() > 1:
                 model = torch.nn.DataParallel(model)
 
-            logger.info("Start Training")
             train(logger, model, inputs, batch_size, out_dir,
                   learning_rate=learning_rate,
                   warmup_steps=warmup_steps,

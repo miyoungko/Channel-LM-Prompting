@@ -33,11 +33,6 @@ def load_data(data_dir, task, k, seed, split):
                 data.append((text, label))
                  #print(text, label)
                 # raise NotImplementedError
-    # cdiff
-    # elif os.path.exists(os.path.join(data_dir, "{}.json".format(split))):
-    #     data_file = os.path.join(data_dir, "{}.json".format(split))
-    #     data = process_cdiff(json.load(data_file, 'r')['data'])
-    #   raw_datasets = load_dataset('json', data_files=data_file, field='data')
         
     else:
         raise NotImplementedError(data_dir)
@@ -47,6 +42,18 @@ def load_data(data_dir, task, k, seed, split):
 
     return data
 
+def load_data_whole(data_dir, task, split):
+    if os.path.exists(os.path.join(data_dir, "{}.json".format(split))):
+        with open(os.path.join(data_dir, "{}.json".format(split)), "r") as f:
+            src = json.load(f)["data"]
+            data = []
+            for d in src:
+                sent = "Claim A: " + d["claim_a"] + " Claim B: " + d["claim_b"]
+                label = str(d["relation"])
+                data.append((sent, label))
+    else:
+        raise NotImplementedError(data_dir)
+    return data
 
 
 def prepare_data(tokenizer, train_data, test_data, max_length, max_length_per_example,
