@@ -83,7 +83,7 @@ def get_optimizer_and_scheduler(optimizer_name,
                                 learning_rate=1e-5,
                                 warmup_proportion=0.01,
                                 warmup_steps=50,
-                                weight_decay=0.0,
+                                weight_decay=1e-5,
                                 adam_epsilon=1e-8,
                                 num_training_steps=1000):
     no_decay = ['bias', 'LayerNorm.weight']

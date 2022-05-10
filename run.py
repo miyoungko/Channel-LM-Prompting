@@ -3,10 +3,12 @@ import torch
 import numpy as np
 
 from tqdm import tqdm
+from sklearn.metrics import f1_score
 
 from model_util import get_optimizer_and_scheduler, get_dataloader
 
 def train(logger, model, inputs, batch_size, output_dir,
+          dev_data, val_inputs,
           learning_rate=1e-5,
           warmup_steps=50,
           num_training_steps=200,
@@ -17,7 +19,7 @@ def train(logger, model, inputs, batch_size, output_dir,
           head_tune=False,
           transform_tune=False):
     optimizer, scheduler = get_optimizer_and_scheduler(
-        "adamw",
+        "adafactor",
         model,
         learning_rate=learning_rate,
         warmup_steps=warmup_steps,
@@ -36,6 +38,9 @@ def train(logger, model, inputs, batch_size, output_dir,
     stop_training=False
 
     logger.info("Start training")
+
+    best_f1 = 0
+    patience = 0
     for epoch in range(num_training_steps):
         for batch in dataloader:
             global_step += 1
@@ -65,22 +70,35 @@ def train(logger, model, inputs, batch_size, output_dir,
                     scheduler.step()
 
             if global_step % eval_period == 0:
-                if prompt_tune:
-                    keys = ["transformer.wte.new_embed.weight"]
-                    model_state_dict = {key: model.state_dict()[key if n_gpus==1 else "module."+key].cpu() for key in keys}
-                elif head_tune:
-                    keys = ["lm_head.my_lm_head.weight"]
-                    model_state_dict = {key: model.state_dict()[key if n_gpus==1 else "module."+key].cpu() for key in keys}
-                elif transform_tune:
-                    keys = ["lm_head.transform.weight"]
-                    model_state_dict = {key: model.state_dict()[key if n_gpus==1 else "module."+key].cpu() for key in keys}
+                f1 = evaluate(model, dev_data, val_inputs, batch_size)
+                logger.info("Performance at step=%d (train loss %.2f): %.2f" % \
+                            (global_step, np.mean(train_losses), f1*100))
+
+                if f1 >= best_f1:
+                    best_f1 = f1
+                    if prompt_tune:
+                        keys = ["shared.new_embed.weight"]
+                        model_state_dict = {key: model.state_dict()[key if n_gpus==1 else "module."+key].cpu() for key in keys}
+                    elif head_tune:
+                        keys = ["lm_head.my_lm_head.weight"]
+                        model_state_dict = {key: model.state_dict()[key if n_gpus==1 else "module."+key].cpu() for key in keys}
+                    elif transform_tune:
+                        keys = ["lm_head.transform.weight"]
+                        model_state_dict = {key: model.state_dict()[key if n_gpus==1 else "module."+key].cpu() for key in keys}
+                    else:
+                        model_state_dict = {k:v.cpu() for (k, v) in model.state_dict().items()}
+                    torch.save(model_state_dict,
+                            os.path.join(output_dir, "model-{}.pt".format(global_step)))
+                    logger.info("Saving model at global_step=%d (train loss %.2f, f1 %.2f)" % \
+                                (global_step, np.mean(train_losses), best_f1*100))
+                    patience = 0
                 else:
-                    model_state_dict = {k:v.cpu() for (k, v) in model.state_dict().items()}
-                torch.save(model_state_dict,
-                           os.path.join(output_dir, "model-{}.pt".format(global_step)))
-                logger.info("Saving model at global_step=%d (train loss %.2f)" % \
-                            (global_step, np.mean(train_losses)))
+                    patience += 1
+                
                 train_losses = []
+                if patience > 4: 
+                    break
+                
 
             if global_step==num_training_steps:
                 break
@@ -105,6 +123,7 @@ def inference(model, inputs, batch_size, return_logits=False):
             labels=batch[3].cuda()
 
         with torch.no_grad():
+
             loss = run_model(model, input_ids, attention_mask, token_type_ids,
                              labels=labels, return_logits=return_logits)
 
@@ -112,10 +131,31 @@ def inference(model, inputs, batch_size, return_logits=False):
 
     return all_losses
 
+def evaluate(model, dev_data, val_inputs, batch_size):
+    label_losses = []
+    for input_tensor in val_inputs:
+        label_losses.append(inference(model,
+                                input_tensor,
+                                batch_size))
+    label_losses = {str(i): loss for i, loss in enumerate(label_losses)}
+    labels = list(label_losses.keys())
+    preds = []
+    answers = []
+    for idx, (_, label) in enumerate(dev_data):
+        label_loss = {l:np.sum(label_losses[l][idx]) for l in label_losses}
+        prediction = sorted(label_loss.items(), key=lambda x: x[1])[0][0]
+        preds.append(prediction)
+        answers.append(label)
+    f1 = f1_score(answers, preds, pos_label='1')
+    return f1
+
 
 def run_model(model, input_ids, attention_mask, token_type_ids,
               labels=None, return_logits=False):
-    outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+    outputs = model(input_ids=input_ids, attention_mask=attention_mask,
+                    decoder_input_ids=input_ids,
+                    decoder_attention_mask=None,
+                    labels=None)
     logits = outputs.logits[..., :-1, :].contiguous()
 
     if return_logits:

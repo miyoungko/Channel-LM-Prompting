@@ -151,6 +151,7 @@ def prepare_data(tokenizer, train_data, test_data, max_length, max_length_per_ex
             input_ids.append(encoded[0])
             attention_mask.append(encoded[1])
             token_type_ids.append(encoded[2])
+
         return dict(input_ids=torch.LongTensor(input_ids),
                     attention_mask=torch.LongTensor(attention_mask),
                     token_type_ids=torch.LongTensor(token_type_ids))
@@ -215,6 +216,7 @@ def prepare_data(tokenizer, train_data, test_data, max_length, max_length_per_ex
                                             bos_token_id, eos_token_id,
                                             allow_truncation=use_demonstrations)
             elif method_type=="direct":
+                print("HI")
                 if use_demonstrations:
                     prompt = [demonstrations.copy() + test_input + prefix[:idx] for test_input in test_inputs]
                 else:
@@ -236,6 +238,7 @@ def prepare_data(tokenizer, train_data, test_data, max_length, max_length_per_ex
                 input_ids.append(encoded[0])
                 attention_mask.append(encoded[1])
                 token_type_ids.append(encoded[2])
+
             tensor = dict(input_ids=torch.LongTensor(input_ids),
                           attention_mask=torch.LongTensor(attention_mask),
                           token_type_ids=torch.LongTensor(token_type_ids))

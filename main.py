@@ -80,6 +80,10 @@ def main(logger, args):
     else:
         # dev_data = load_data_whole(args.data_dir, args.task, k, seed, args.split)
         dev_data = load_data_whole(args.data_dir, args.task, args.split)
+    if args.test_split is None:
+        test_data = None
+    else:
+        test_data = load_data_whole(args.data_dir, args.task, args.test_split)
         
     logger.info("Load dataset complete")
     accs = []
@@ -90,7 +94,7 @@ def main(logger, args):
                   args.task, train_task,
                   k, seed, args.train_seed,
                   args.out_dir, args.split,
-                  tokenizer, model, train_data, dev_data,
+                  tokenizer, model, train_data, dev_data, test_data,
                   # batch_size, max_length, args.gpt2,
                   batch_size, max_length, args.t5,
                   template_idx, args.method,
@@ -115,7 +119,7 @@ def main(logger, args):
 def run(logger, do_train, do_zeroshot, task, train_task, k, seed,
         train_seed,
         out_dir, split, tokenizer, model,
-        train_data, dev_data,
+        train_data, dev_data, test_data,
         # batch_size, max_length, gpt2, template_idx, method_type,
         batch_size, max_length, t5, template_idx, method_type,
         learning_rate, warmup_steps,
@@ -187,8 +191,8 @@ def run(logger, do_train, do_zeroshot, task, train_task, k, seed,
 
         k = int(k)
         #TODO
-        eval_period = 2
-        num_training_steps = 5
+        eval_period = 100
+        num_training_steps = 1000
 
         cache_paths = [os.path.join(out_dir, "{}cache-{}-{}.pkl".format(
             task + "-" if train_task != task else "",
@@ -212,6 +216,20 @@ def run(logger, do_train, do_zeroshot, task, train_task, k, seed,
             ensemble=ensemble)
 
         logger.info(out_dir)
+
+        val_tensors = prepare_data(
+            tokenizer, train_data, dev_data,
+            max_length=max_length,
+            max_length_per_example=max_length_per_example,
+            n_classes=n_classes,
+            templates=templates,
+            method_type=method_type,
+            use_demonstrations=use_demonstrations,
+            ensemble=ensemble,
+            is_null=is_null)
+
+        if prompt_tune:
+            val_tensors = prepend_task_tokens(tokenizer, val_tensors, n_prefix)
 
         if not os.path.exists(out_dir):
             os.mkdir(out_dir)
@@ -252,6 +270,7 @@ def run(logger, do_train, do_zeroshot, task, train_task, k, seed,
 
             logger.info("Start Training")
             train(logger, model, inputs, batch_size, out_dir,
+                  dev_data=dev_data, val_inputs=val_tensors,
                   learning_rate=learning_rate,
                   warmup_steps=warmup_steps,
                   eval_period=eval_period,
@@ -271,8 +290,20 @@ def run(logger, do_train, do_zeroshot, task, train_task, k, seed,
         ensemble=ensemble,
         is_null=is_null)
 
+    test_tensors = prepare_data(
+        tokenizer, train_data, test_data,
+        max_length=max_length,
+        max_length_per_example=max_length_per_example,
+        n_classes=n_classes,
+        templates=templates,
+        method_type=method_type,
+        use_demonstrations=use_demonstrations,
+        ensemble=ensemble,
+        is_null=is_null)
+
     if prompt_tune:
         input_tensors = prepend_task_tokens(tokenizer, input_tensors, n_prefix)
+        test_tensors = prepend_task_tokens(tokenizer, test_tensors, n_prefix)
 
     if head_tune:
         # some tricks in case train_task and test_task are different
@@ -345,13 +376,18 @@ def run(logger, do_train, do_zeroshot, task, train_task, k, seed,
                 logger.info("Finished loading the model")
 
             losses = []
+            test_losses = []
             for input_tensor in input_tensors:
                 losses.append(inference(model,
                                         input_tensor,
                                         batch_size))
+            for test_tensor in test_tensors:
+                test_losses.append(inference(model,
+                                        test_tensor,
+                                        batch_size))
 
             with open(cache_path, "wb") as f:
-                pkl.dump(losses, f)
+                pkl.dump(test_losses, f)
 
         if is_null:
             continue
@@ -373,7 +409,8 @@ def run(logger, do_train, do_zeroshot, task, train_task, k, seed,
                 losses[i] = loss - bias_loss
 
 
-        acc, f1, rc, pc = evaluate(dev_data, {str(i): loss for i, loss in enumerate(losses)})
+        # acc, f1, rc, pc = evaluate(dev_data, {str(i): loss for i, loss in enumerate(losses)})
+        acc, f1, rc, pc = evaluate(test_data, {str(i): loss for i, loss in enumerate(test_losses)})
         logger.info(acc)
         logger.info(f1)
         logger.info(rc)
@@ -427,6 +464,7 @@ if __name__ == '__main__':
     parser.add_argument("--out_dir", type=str, default="out")
 
     parser.add_argument("--split", type=str, default=None)
+    parser.add_argument("--test_split", type=str, default=None)
     parser.add_argument("--method", type=str, default="direct")
     parser.add_argument("--n_prefix", type=int, default=20)
     # parser.add_argument("--gpt2", type=str, default="gpt2-large")
