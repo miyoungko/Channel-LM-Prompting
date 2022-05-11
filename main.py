@@ -114,7 +114,7 @@ def main(logger, args):
 
     if args.split is not None:
         logger.info("Accuracy = %.1f (Avg) / %.1f (Worst)" % (100*np.mean(accs), 100*np.min(accs)))
-        logger.info("F1 = %.1f (Avg) / %.1f (Worst)" % (100*np.mean(f1s), 100*np.min(f1s)))
+        logger.info("F1 = %.2f (Avg) / %.2f (Worst)" % (100*np.mean(f1s), 100*np.min(f1s)))
 
 def run(logger, do_train, do_zeroshot, task, train_task, k, seed,
         train_seed,
@@ -386,8 +386,16 @@ def run(logger, do_train, do_zeroshot, task, train_task, k, seed,
                                         test_tensor,
                                         batch_size))
 
+                                        
             with open(cache_path, "wb") as f:
                 pkl.dump(test_losses, f)
+
+
+            cache_path_val = cache_path.split('.')[0] + '_val.pkl'
+            with open(cache_path_val, "wb") as f:
+                pkl.dump(test_losses, f)
+
+
 
         if is_null:
             continue

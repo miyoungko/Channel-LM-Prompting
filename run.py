@@ -3,7 +3,7 @@ import torch
 import numpy as np
 
 from tqdm import tqdm
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, recall_score
 
 from model_util import get_optimizer_and_scheduler, get_dataloader
 
@@ -96,7 +96,7 @@ def train(logger, model, inputs, batch_size, output_dir,
                     patience += 1
                 
                 train_losses = []
-                if patience > 4: 
+                if patience >= 6: 
                     break
                 
 
@@ -147,6 +147,8 @@ def evaluate(model, dev_data, val_inputs, batch_size):
         preds.append(prediction)
         answers.append(label)
     f1 = f1_score(answers, preds, pos_label='1')
+    recall = recall_score(answers, preds, average=None)
+    print("Recall:",  recall)
     return f1
 
 
