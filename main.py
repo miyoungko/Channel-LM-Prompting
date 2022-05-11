@@ -107,7 +107,8 @@ def main(logger, args):
                   head_tune=args.head_tune,
                   transform_tune=args.transform_tune,
                   do_check=args.do_check,
-                  n_prefix=args.n_prefix)
+                  n_prefix=args.n_prefix,
+                  weight=args.weight)
 
         accs.append(acc)
         f1s.append(f1)
@@ -130,7 +131,8 @@ def run(logger, do_train, do_zeroshot, task, train_task, k, seed,
         prompt_tune=False,
         head_tune=False,
         transform_tune=False,
-        do_check=False, n_prefix=20):
+        do_check=False, n_prefix=20,
+        weight=False):
 
     random.seed(train_seed)
     np.random.seed(train_seed)
@@ -277,7 +279,8 @@ def run(logger, do_train, do_zeroshot, task, train_task, k, seed,
                   num_training_steps=num_training_steps,
                   prompt_tune=prompt_tune,
                   head_tune=head_tune,
-                  transform_tune=transform_tune)
+                  transform_tune=transform_tune,
+                  weight=weight)
 
     input_tensors = prepare_data(
         tokenizer, train_data, dev_data,
@@ -465,8 +468,9 @@ if __name__ == '__main__':
     parser.add_argument("--seed", type=str, default="100")
     parser.add_argument("--train_seed", type=int, default=1)
     parser.add_argument("--lr", type=float, default=1e-5)
-    parser.add_argument("--warmup_steps", type=int, default=0)
+    parser.add_argument("--warmup_steps", type=int, default=50)
     parser.add_argument("--batch_size", type=int, default=32)
+    parser.add_argument("--weight", default=False, action="store_true")
 
     parser.add_argument("--data_dir", type=str, default="data")
     parser.add_argument("--out_dir", type=str, default="out")

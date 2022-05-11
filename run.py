@@ -17,7 +17,8 @@ def train(logger, model, inputs, batch_size, output_dir,
           eval_period=20,
           prompt_tune=False,
           head_tune=False,
-          transform_tune=False):
+          transform_tune=False,
+          weight=False):
     optimizer, scheduler = get_optimizer_and_scheduler(
         "adafactor",
         model,
@@ -153,7 +154,7 @@ def evaluate(model, dev_data, val_inputs, batch_size):
 
 
 def run_model(model, input_ids, attention_mask, token_type_ids,
-              labels=None, return_logits=False):
+              labels=None, return_logits=False, weight=False):
     outputs = model(input_ids=input_ids, attention_mask=attention_mask,
                     decoder_input_ids=input_ids,
                     decoder_attention_mask=None,
@@ -169,7 +170,10 @@ def run_model(model, input_ids, attention_mask, token_type_ids,
     labels = labels[..., 1:].contiguous()
     label_mask = token_type_ids[..., 1:].contiguous()
 
-    loss_fct = torch.nn.CrossEntropyLoss(reduction="none")
+    if weight:
+        loss_fct = torch.nn.CrossEntropyLoss(reduction="none", weight=[0.2, 0.8])
+    else:
+        loss_fct = torch.nn.CrossEntropyLoss(reduction="none")
 
     losses = loss_fct(logits.view(-1, logits.size(-1)),
                       labels.view(-1)) # [batch_size, length]

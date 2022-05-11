@@ -10,7 +10,7 @@ def cdiffs-t5:
     --prompt_tune \
     --do_train \
     --n_prefix 100 \
-    --batch_size 32 \
+    --batch_size 16 \
     --lr 0.3
 
 def cdiffw-t5:
@@ -25,7 +25,8 @@ def cdiffw-t5:
     --prompt_tune \
     --do_train \
     --n_prefix 100 \
-    --batch_size 32 \
+    --batch_size 16 \
+    --weight \
     --lr 0.3
 
 def debug:
