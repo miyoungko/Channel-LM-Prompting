@@ -26,6 +26,7 @@ def cdiffw-t5:
     --do_train \
     --n_prefix 100 \
     --batch_size 16 \
+    --warmup_steps 0 \
     --weight \
     --lr 0.3
 
@@ -42,3 +43,21 @@ def debug:
     --do_train \
     --batch_size 32 \
     --lr 0.01
+
+
+def pred-cdiffw:
+	python main.py \
+    --task 'cdiffw' \
+    --split dev \
+    --test_split ${SPLIT} \
+    --data_dir data/original/cdiffw \
+    --out_dir out \
+    --t5 ${MODEL}  \
+    --method direct \
+    --prompt_tune \
+    --do_check \
+    --warmup_step 0 \
+    --n_prefix 100 \
+    --batch_size 16 \
+    --seed 100 \
+    --lr 0.3

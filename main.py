@@ -93,7 +93,7 @@ def main(logger, args):
         acc, f1 = run(logger, args.do_train, args.do_zeroshot,
                   args.task, train_task,
                   k, seed, args.train_seed,
-                  args.out_dir, args.split,
+                  args.out_dir, args.split, args.test_split,
                   tokenizer, model, train_data, dev_data, test_data,
                   # batch_size, max_length, args.gpt2,
                   batch_size, max_length, args.t5,
@@ -119,7 +119,7 @@ def main(logger, args):
 
 def run(logger, do_train, do_zeroshot, task, train_task, k, seed,
         train_seed,
-        out_dir, split, tokenizer, model,
+        out_dir, split, test_split, tokenizer, model,
         train_data, dev_data, test_data,
         # batch_size, max_length, gpt2, template_idx, method_type,
         batch_size, max_length, t5, template_idx, method_type,
@@ -193,12 +193,12 @@ def run(logger, do_train, do_zeroshot, task, train_task, k, seed,
 
         k = int(k)
         #TODO
-        eval_period = 100
-        num_training_steps = 1000
+        eval_period = 2
+        num_training_steps = 4
 
         cache_paths = [os.path.join(out_dir, "{}cache-{}-{}.pkl".format(
             task + "-" if train_task != task else "",
-            split, step))
+            test_split, step))
                        for step in range(eval_period, num_training_steps + eval_period, eval_period)]
         checkpoints = [os.path.join(out_dir, "model-{}.pt".format(step))
                        for step in range(eval_period, num_training_steps + eval_period, eval_period)]
@@ -240,6 +240,7 @@ def run(logger, do_train, do_zeroshot, task, train_task, k, seed,
 
             # model = GPT2LMHeadModel.from_pretrained(gpt2)
             model = T5ForConditionalGeneration.from_pretrained(t5)
+
 
             if prompt_tune:
                 for param in model.parameters():
@@ -346,6 +347,7 @@ def run(logger, do_train, do_zeroshot, task, train_task, k, seed,
     logger.info("Output:")
     logger.info(tokenizer.decode([_id for _id, _type_id in zip(input_ids, token_type_ids) if _type_id == 1]))
 
+    
     results = []
     for cache_path, checkpoint in zip(cache_paths, checkpoints):
 
@@ -354,7 +356,10 @@ def run(logger, do_train, do_zeroshot, task, train_task, k, seed,
         # if there is a cache, load it
         if os.path.exists(cache_path):
             with open(cache_path, "rb") as f:
-                losses = pkl.load(f)
+                test_losses = pkl.load(f)
+            # cache_path_val = '.'.join(cache_path.split('.')[0:-1]) + '_val.pkl'
+            # with open(cache_path_val, 'rb') as f:
+            #     test_losses = pkl.load(f)
         else:
             if checkpoint is not None and not os.path.exists(checkpoint):
                 logger.info("checkpoint %s not found..." % checkpoint)
@@ -394,9 +399,11 @@ def run(logger, do_train, do_zeroshot, task, train_task, k, seed,
                 pkl.dump(test_losses, f)
 
 
-            cache_path_val = cache_path.split('.')[0] + '_val.pkl'
+            cache_path_val = '.'.join(cache_path.split('.')[0:-1]) + '_val.pkl'
+            print(cache_paths)
+            print(checkpoints)
             with open(cache_path_val, "wb") as f:
-                pkl.dump(test_losses, f)
+                pkl.dump(losses, f)
 
 
 
@@ -426,6 +433,7 @@ def run(logger, do_train, do_zeroshot, task, train_task, k, seed,
         logger.info(f1)
         logger.info(rc)
         logger.info(pc)
+        
         return acc, f1
 
 def evaluate(dev_data, label_losses):
@@ -468,7 +476,7 @@ if __name__ == '__main__':
     parser.add_argument("--seed", type=str, default="100")
     parser.add_argument("--train_seed", type=int, default=1)
     parser.add_argument("--lr", type=float, default=1e-5)
-    parser.add_argument("--warmup_steps", type=int, default=50)
+    parser.add_argument("--warmup_steps", type=int, default=0)
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--weight", default=False, action="store_true")
 

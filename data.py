@@ -216,7 +216,7 @@ def prepare_data(tokenizer, train_data, test_data, max_length, max_length_per_ex
                                             bos_token_id, eos_token_id,
                                             allow_truncation=use_demonstrations)
             elif method_type=="direct":
-                print("HI")
+                # print("HI")
                 if use_demonstrations:
                     prompt = [demonstrations.copy() + test_input + prefix[:idx] for test_input in test_inputs]
                 else:
